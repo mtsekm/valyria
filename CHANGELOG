@@ -1,0 +1,6 @@
+## [1.0.0] - 2024-11-08
+### Added
+- Initial release of Valyria.
+- Simple metrics collector setup to capture core GPU and CPU metrics.
+- Initial set of RenderTasks for shader performance benchmarking.
+- Support for image loading (PNG and JPG).
