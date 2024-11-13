@@ -11,6 +11,7 @@ int main(int argc, char *argv[]) {
         configManager.setOption("benchmark_duration", "30", "The duration for running each render task in seconds.");
         configManager.setOption("log_level", "INFO", "Log level");
         configManager.setOption("direct_mode", "false", "Whether to use Essos direct mode or run as a wayland client.");
+        configManager.setOption("output_dir", "/tmp", "Directory to save results in.");
         configManager.setOption("sampling_rate", "1000", "The sampling rate for metrics collection in milliseconds.");
         configManager.setOption("target_frame_rate", "60", "Specifies the target frame rate for rendering.");
         configManager.setOption("window_width", "0", "Width of the application window. 0 for fullscreen.");

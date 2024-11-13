@@ -13,9 +13,10 @@ public:
     void generateReport();
 
 private:
-    std::string generateHeader() const;
+    std::string generateHeader(const std::string &deviceName) const;
     std::string generateEnvironmentSection(const cJSON *envData) const;
-    std::string generateMetricsTable(const cJSON *metricsData) const;
+    std::string generateToolConfigSection(const cJSON *toolData) const;
+    std::string generateMetricsTabs(const cJSON *metricsData) const;
     std::string generateSparklineJS() const;
     std::string generateFooter() const;
     std::string formatName(const std::string &name) const;

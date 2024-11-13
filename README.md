@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 
-Valyria is a lightweight graphics benchmarking tool tailored for RDK-based devices, to analyze OpenGL ES rendering performance.
+Valyria is a lightweight graphics benchmarking tool tailored for RDK-based devices, designed to analyze OpenGL ES rendering performance.
 
 ## Features
 - Measures and analyzes frame rate and render time for various scenes rendered using OpenGL ES.
@@ -46,11 +46,15 @@ The following options are available:
   - Default: `0`
   - Example: `--window_height=720`
 
+- **`output_dir`**: Directory to save benchmark results (JSON and HTML reports).
+  - Default: `/tmp`
+  - Example: `--output_dir=/opt/persistent/valyria_results`
+
 ## Example Usage
-Run a benchmark for 60 seconds, with metrics sampling every 500 ms and a target frame rate of 60:
+Run a benchmark for 60 seconds, with metrics sampling every 500 ms, a target frame rate of 60, and save results to `/opt/persistent/valyria_results`:
 
 ```
-valyria --benchmark_duration=60 --sampling_rate=500 --target_frame_rate=60 --window_width=1280 --window_height=720
+valyria --benchmark_duration=60 --sampling_rate=500 --target_frame_rate=60 --window_width=1280 --window_height=720 --output_dir=/opt/persistent/valyria_results
 ```
 
 ## Example Output
@@ -62,6 +66,6 @@ Valyria outputs FPS to the console and generates a report upon completion. Examp
 [INF] FPS: 60.000000  -  Frame time: 16.666667 ms
 ...
 [INF] Benchmark run completed.
-[INF] JSON report: /tmp/valyria_report.json
-[INF] HTML report: /tmp/valyria_report.html
+[INF] JSON report: /opt/persistent/valyria_results/valyria_report.json
+[INF] HTML report: /opt/persistent/valyria_results/valyria_report.html
 ```

@@ -23,14 +23,14 @@ enum class MetricType {
  * Struct representing a single metric entry that holds multiple values for tracking over time.
  */
 struct MetricData {
-    MetricType type;                ///< Type of metric (GAUGE or COUNTER).
-    std::vector<double> values;     ///< Collection of recorded values.
+    MetricType type;            ///< Type of metric (GAUGE or COUNTER).
+    std::vector<double> values; ///< Collection of recorded values.
 
     void addValue(double value) { values.push_back(value); }
 };
 
 /**
- * The `MetricsCollector` class collects, processes, and manages system and performance metrics 
+ * The `MetricsCollector` class collects, processes, and manages system and performance metrics
  * during a benchmarking session.
  */
 class MetricsCollector {
@@ -124,6 +124,7 @@ protected:
 private:
     friend class BenchmarkEngine;
     std::map<std::string, std::string> staticInfo;      ///< Stores static system metadata.
+    std::map<std::string, std::string> toolInfo;        ///< Stores static system metadata.
     std::map<std::string, MetricData> collectedMetrics; ///< Maps each metric name to its data.
     std::atomic<bool> collecting;                       ///< Status of the collection process.
     std::thread collectionThread;                       ///< Background thread for metrics collection.

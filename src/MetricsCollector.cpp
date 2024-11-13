@@ -111,8 +111,10 @@ void MetricsCollector::collectStaticSystemInfo() {
     staticInfo["OpenGL Extensions"] = extensions ? std::string(extensions) : "None";
 
     ConfigurationManager &configManager = ConfigurationManager::getInstance();
-    staticInfo["Direct mode"] = configManager.getValue("direct_mode");
-    staticInfo["Window size"] = configManager.getValue("window_width") + "x" + configManager.getValue("window_height");
+    toolInfo["Direct mode"] = configManager.getValue("direct_mode");
+    toolInfo["Benchmark duration (s)"] = configManager.getValue("benchmark_duration");
+    toolInfo["Sampling rate (ms)"] = configManager.getValue("sampling_rate");
+    toolInfo["Window size"] = configManager.getValue("window_width") + "x" + configManager.getValue("window_height");
 
     auto now = std::chrono::system_clock::now();
     auto nowTime = std::chrono::system_clock::to_time_t(now);
@@ -229,6 +231,7 @@ void MetricsCollector::createBenchmarkReport(const std::string &taskName) {
 }
 
 cJSON *MetricsCollector::createJSONReport(const std::string &filePath) const {
+    logDebug("Creating the JSON report");
     cJSON *reportJson = cJSON_CreateObject();
 
     cJSON *staticInfoJson = cJSON_CreateObject();
@@ -236,6 +239,12 @@ cJSON *MetricsCollector::createJSONReport(const std::string &filePath) const {
         cJSON_AddStringToObject(staticInfoJson, entry.first.c_str(), entry.second.c_str());
     }
     cJSON_AddItemToObject(reportJson, "Environment", staticInfoJson);
+
+    cJSON *toolInfoJson = cJSON_CreateObject();
+    for (const auto &entry : toolInfo) {
+        cJSON_AddStringToObject(toolInfoJson, entry.first.c_str(), entry.second.c_str());
+    }
+    cJSON_AddItemToObject(reportJson, "Configuration", toolInfoJson);
 
     if (runtimeReport) {
         cJSON_AddItemToObject(reportJson, "Benchmark Results", cJSON_Duplicate(runtimeReport, true));
@@ -261,18 +270,21 @@ cJSON *MetricsCollector::createJSONReport(const std::string &filePath) const {
     }
 
     cJSON_free(jsonString);
+    logDebug("JSON report is ready.");
     return reportJson;
 }
 
 void MetricsCollector::createReport() {
-    cJSON *reportJson = createJSONReport("/tmp/valyria_report.json");
+    logDebug("Creating the reports");
+    std::string output_dir = ConfigurationManager::getInstance().getValue("output_dir");
+    cJSON *reportJson = createJSONReport(output_dir + "/valyria_report.json");
     if (reportJson) {
-        HTMLReportGenerator html(reportJson, "/tmp/valyria_report.html");
+        HTMLReportGenerator html(reportJson, output_dir + "/valyria_report.html");
         html.generateReport();
         cJSON_Delete(reportJson);
 
-        logInfo("JSON report: /tmp/valyria_report.json");
-        logInfo("HTML report: /tmp/valyria_report.html");
+        logInfo("JSON report: " + output_dir + "/valyria_report.json");
+        logInfo("HTML report: " + output_dir + "/valyria_report.html");
     }
 }
 

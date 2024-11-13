@@ -1,4 +1,5 @@
 #include "HTMLReportGenerator.h"
+#include "Logger.h"
 
 #include <algorithm>
 #include <string>
@@ -7,88 +8,164 @@ HTMLReportGenerator::HTMLReportGenerator(const cJSON *jsonData, const std::strin
     : jsonData(jsonData), filePath(filePath) {}
 
 void HTMLReportGenerator::generateReport() {
+    logDebug("Generating the HTML report");
     std::ofstream file(filePath);
-    file << generateHeader();
+    cJSON *environmentData = cJSON_GetObjectItem(jsonData, "Environment");
+    if (!environmentData) {
+        logError("Environment data not found in JSON.");
+        return;
+    }
+    cJSON *deviceNameItem = cJSON_GetObjectItem(environmentData, "Device Name");
+    if (!deviceNameItem) {
+        logError("Device Name not found in Environment data.");
+        return;
+    }
+    std::string deviceName = deviceNameItem->valuestring;
+    file << generateHeader(deviceName);
     file << generateEnvironmentSection(cJSON_GetObjectItem(jsonData, "Environment"));
-    file << generateMetricsTable(cJSON_GetObjectItem(jsonData, "Benchmark Results"));
+    file << generateToolConfigSection(cJSON_GetObjectItem(jsonData, "Configuration"));
+    file << generateMetricsTabs(cJSON_GetObjectItem(jsonData, "Benchmark Results"));
     file << generateSparklineJS();
     file << generateFooter();
     file.close();
+    logDebug("HTML report is ready.");
 }
 
-std::string HTMLReportGenerator::generateHeader() const {
+std::string HTMLReportGenerator::generateHeader(const std::string &deviceName) const {
+    logDebug("Generating HTML header");
     return R"(
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Valyria Benchmark Report</title>
+    <title>)" +
+           deviceName + R"( - Valyria Benchmark Report</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; color: #333; }
         h1, h2 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
-        th { background-color: #3a6ea5; color: #fff; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:nth-child(odd) { background-color: #e7eef8; }
-        .align-right { text-align: right; }
-        .sparkline { width: 300px; height: 20px; }
+        .table-striped tbody tr:nth-of-type(odd) { background-color: rgba(0,0,0,.05); }
+        .sparkline { width: 200px; height: 20px; }
+        .tooltip-custom{position:absolute;left:0;top:0;visibility:hidden;background:transparent;color:black;font:10px Arial,sans-serif;text-align:left;white-space:nowrap;padding:0;border:none;z-index:10000}
+        .tooltip-custom .jqsfield{color:black;font:10px Arial,sans-serif;text-align:left}
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js"></script>
 </head>
 <body>
+    <div class="container-fluid">
+        <div class="row">
 )";
 }
 
+#include <sstream>
+
 std::string HTMLReportGenerator::generateEnvironmentSection(const cJSON *envData) const {
-    std::string html = "<h2>Environment</h2><ul>";
+    logDebug("Generating HTML environment section");
+    std::string html = "<div class='col-md-6'><ul class='list-group'>";
     cJSON *item = nullptr;
+
+    // Iterate through all environment items
     cJSON_ArrayForEach(item, envData) {
-        html += "<li><strong>" + std::string(item->string) + ":</strong> " + item->valuestring + "</li>";
+        std::string key = item->string;
+        if (key == "OpenGL Extensions") {
+            html += R"(
+                <li class='list-group-item'>
+                    <strong>OpenGL Extensions:</strong>
+                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#openglExtensions" aria-expanded="false" aria-controls="openglExtensions">
+                        Show Extensions
+                    </button>
+                    <div class="collapse" id="openglExtensions" style="font-size: 0.9em;">
+            )";
+
+            // Display extensions in a compact format
+            std::istringstream extensionsStream(item->valuestring);
+            std::string extension;
+            while (extensionsStream >> extension) {
+                html += "<span style='display: inline-block; margin-right: 5px;'>" + extension + "</span>";
+            }
+
+            html += R"(
+                    </div>
+                </li>
+            )";
+        } else {
+            html += "<li class='list-group-item'><strong>" + key + ":</strong> " + item->valuestring + "</li>";
+        }
     }
-    html += "</ul>";
+
+    html += "</ul></div>";
     return html;
 }
 
-std::string HTMLReportGenerator::generateMetricsTable(const cJSON *metricsData) const {
-    std::string html = "<h2>Benchmark Results</h2>\n";
+std::string HTMLReportGenerator::generateToolConfigSection(const cJSON *toolData) const {
+    logDebug("Generating HTML configuration section");
+    std::string html = "<div class='col-md-6'><ul class='list-group'>";
+    cJSON *item = nullptr;
+    cJSON_ArrayForEach(item, toolData) {
+        html += "<li class='list-group-item'><strong>" + std::string(item->string) + ":</strong> " + item->valuestring +
+                "</li>";
+    }
+    html += "</ul></div>";
+    html += "</div>"; // closing row
+    return html;
+}
+
+std::string HTMLReportGenerator::generateMetricsTabs(const cJSON *metricsData) const {
+    logDebug("Generating HTML metrics tabs section");
+    std::string html;
+    int tabIndex = 0;
     cJSON *benchmark = nullptr;
 
+    html += R"(<div class="mt-4"><ul class="nav nav-tabs" id="benchmarkTabs" role="tablist">)";
     cJSON_ArrayForEach(benchmark, metricsData) {
-        html += "  <h3>" + std::string(benchmark->string) + "</h3>\n";
-        html += "  <table>\n    <thead>\n      <tr>\n"
-                "        <th>Metric Name</th>\n"
-                "        <th class='align-right'>Min</th>\n"
-                "        <th class='align-right'>Max</th>\n"
-                "        <th class='align-right'>Avg</th>\n"
-                "        <th class='align-right'>Std Dev</th>\n"
-                "        <th>Chart</th>\n"
-                "      </tr>\n    </thead>\n    <tbody>\n";
+        std::string benchmarkName = benchmark->string;
+        std::string tabID = "tab_" + formatName(benchmarkName);
+
+        html += "<li class='nav-item'>"
+                "<a class='nav-link " +
+                std::string(tabIndex == 0 ? "active" : "") + "' id='" + tabID + "-tab' data-toggle='tab' href='#" +
+                tabID + "' role='tab'>" + benchmarkName + "</a></li>";
+        tabIndex++;
+    }
+    html += "</ul><div class='tab-content' id='benchmarkTabContent'>";
+
+    tabIndex = 0;
+    cJSON_ArrayForEach(benchmark, metricsData) {
+        std::string benchmarkName = benchmark->string;
+        std::string tabID = "tab_" + formatName(benchmarkName);
+
+        html += "<div class='tab-pane fade " + std::string(tabIndex == 0 ? "show active" : "") + "' id='" + tabID +
+                "' role='tabpanel' aria-labelledby='" + tabID + "-tab'>";
+        html += "<table class='table table-striped table-hover'><thead><tr>"
+                "<th style='width:300px'>Metric Name</th>"
+                "<th class='text-right' style='width:80px;'>Min</th>"
+                "<th class='text-right' style='width:80px;'>Max</th>"
+                "<th class='text-right' style='width:80px;'>Avg</th>"
+                "<th class='text-right' style='width:80px;'>StdDev</th>"
+                "<th>Chart</th>"
+                "</tr></thead><tbody>";
 
         cJSON *metric = nullptr;
-        int rowIndex = 0;
         cJSON_ArrayForEach(metric, benchmark) {
-            std::string rowClass = (rowIndex++ % 2 == 0) ? "even" : "odd";
-            html += "      <tr class='" + rowClass + "'>\n";
-            html += "        <td>" + std::string(metric->string) + "</td>\n";
-
+            html += "<tr><td>" + std::string(metric->string) + "</td>";
             for (const auto &stat : {"minimum", "maximum", "average", "std_dev"}) {
                 cJSON *value = cJSON_GetObjectItem(metric, stat);
-                html += "        <td class='align-right'>" + std::string(value ? value->valuestring : "N/A") + "</td>\n";
+                html += "<td class='text-right' style='width:80px;'>" +
+                        std::string(value ? value->valuestring : "N/A") + "</td>";
             }
-
-            html += "        <td><span class='sparkline' id='sl_" + std::string(benchmark->string) +
-                    "_" + formatName(metric->string) + "'></span></td>\n";
-            html += "      </tr>\n";
+            html += "<td><span class='sparkline' id='sl_" + formatName(benchmarkName) + "_" +
+                    formatName(metric->string) + "'></span></td></tr>";
         }
-
-        html += "    </tbody>\n  </table>\n";
+        html += "</tbody></table></div>";
+        tabIndex++;
     }
+    html += "</div></div>";
     return html;
 }
 
 std::string HTMLReportGenerator::generateSparklineJS() const {
+    logDebug("Generating HTML sparkline JS section");
     std::string script = R"(
 <script>
     $(document).ready(function() {)";
@@ -108,10 +185,9 @@ std::string HTMLReportGenerator::generateSparklineJS() const {
                         valuesArray += cJSON_GetArrayItem(values, i)->valuestring;
                     }
                     valuesArray += "]";
-
-                    std::string elementId = "sl_" + std::string(benchmark->string) + "_" + formatName(metric->string);
+                    std::string elementId = "sl_" + formatName(benchmark->string) + "_" + formatName(metric->string);
                     script += "$('#" + elementId + "').sparkline(" + valuesArray +
-                              ", {type: 'line', width: '300px', height: '20px'});\n";
+                              ", {type: 'line', width: '200px', height: '20px', tooltipFormat: '<span style=\"color: #000;\">{{y}}</span>', tooltipClassname: 'tooltip-custom'});\n";
                 }
             }
         }
@@ -123,7 +199,14 @@ std::string HTMLReportGenerator::generateSparklineJS() const {
     return script;
 }
 
-std::string HTMLReportGenerator::generateFooter() const { return "</body></html>"; }
+std::string HTMLReportGenerator::generateFooter() const {
+    logDebug("Generating HTML footer section");
+    return R"(
+    </div> <!-- container -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>)";
+}
 
 std::string HTMLReportGenerator::formatName(const std::string &name) const {
     std::string formattedName = name;
