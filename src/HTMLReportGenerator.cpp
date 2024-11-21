@@ -1,3 +1,22 @@
+/*
+* If not stated otherwise in this file or this component's LICENSE file the
+* following copyright and licenses apply:
+*
+* Copyright 2024 Sky UK
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 #include "HTMLReportGenerator.h"
 #include "Logger.h"
 
@@ -106,8 +125,21 @@ std::string HTMLReportGenerator::generateToolConfigSection(const cJSON *toolData
         html += "<li class='list-group-item'><strong>" + std::string(item->string) + ":</strong> " + item->valuestring +
                 "</li>";
     }
-    html += "</ul></div>";
-    html += "</div>"; // closing row
+    html += "</ul>";
+
+    cJSON *scoreItem = cJSON_GetObjectItem(jsonData, "Score");
+    if (scoreItem && cJSON_IsString(scoreItem)) {
+        html += R"(
+                <div class="alert alert-primary mt-3" role="alert">
+                    <h3 class="alert-heading">Score: )" +
+                std::string(scoreItem->valuestring) + R"(</h3>
+                </div>
+        )";
+    } else {
+        logWarn("Combined Score is missing or not a valid string.");
+    }
+
+    html += "</div></div>"; // closing row
     return html;
 }
 

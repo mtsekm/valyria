@@ -1,3 +1,22 @@
+/*
+* If not stated otherwise in this file or this component's LICENSE file the
+* following copyright and licenses apply:
+*
+* Copyright 2024 Sky UK
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 #ifndef VALYRIA_METRICSCOLLECTOR_H
 #define VALYRIA_METRICSCOLLECTOR_H
 
@@ -83,8 +102,10 @@ public:
 
     /**
      * Creates a report for the benchmark run from collected metrics.
+     * 
+     * @param tasks The number of RenderTasks.
      */
-    void createReport();
+    void createReport(int tasks);
 
 protected:
     /**
@@ -130,14 +151,15 @@ private:
     std::thread collectionThread;                       ///< Background thread for metrics collection.
     mutable std::mutex metricsMutex;                    ///< Synchronizes access to metric data.
     cJSON *runtimeReport;                               ///< JSON object representing runtime metrics.
-
+    double combinedScore;                               ///< Accumulated score across all benchmark tasks.
     /**
      * Generates a JSON report from collected metrics and writes it to the specified file.
      *
      * @param filePath The output path for the JSON report.
+     * @param tasks The number of tasks.
      * @return A pointer to the created JSON structure.
      */
-    cJSON *createJSONReport(const std::string &filePath) const;
+    cJSON *createJSONReport(const std::string &filePath, int tasks) const;
 
     /**
      * Compiles collected runtime metrics for a specific benchmark task into a report structure.

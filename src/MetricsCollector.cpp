@@ -1,3 +1,22 @@
+/*
+* If not stated otherwise in this file or this component's LICENSE file the
+* following copyright and licenses apply:
+*
+* Copyright 2024 Sky UK
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 #include "MetricsCollector.h"
 #include "ConfigurationManager.h"
 #include "HTMLReportGenerator.h"
@@ -16,7 +35,7 @@
 #include <GLES2/gl2.h>
 #include <cjson/cJSON.h>
 
-MetricsCollector::MetricsCollector() : frameCount(0), collecting(false), runtimeReport(nullptr) {
+MetricsCollector::MetricsCollector() : frameCount(0), collecting(false), runtimeReport(nullptr), combinedScore(0.0) {
     logTrace("MetricsCollector created.");
 }
 
@@ -148,7 +167,7 @@ void MetricsCollector::collectRuntimeMetrics() {
             if (fps) {
                 frameTimeMs = 1000.0 / fps;
             } else {
-                frameTimeMs = 5000.0;
+                frameTimeMs = 60000.0;
             }
 
             recordMetric("FPS", fps, MetricType::GAUGE);
@@ -212,6 +231,13 @@ void MetricsCollector::createBenchmarkReport(const std::string &taskName) {
                 cJSON_AddStringToObject(metricJson, "minimum", formatToTwoDecimalPlaces(minVal).c_str());
                 cJSON_AddStringToObject(metricJson, "maximum", formatToTwoDecimalPlaces(maxVal).c_str());
                 cJSON_AddStringToObject(metricJson, "std_dev", formatToTwoDecimalPlaces(stdDev).c_str());
+
+                if (metricName == "FPS") {
+                    double taskScore = ((avgVal - stdDev) / 60.0) * 1000.0;
+                    taskScore = std::clamp(taskScore, 0.0, 1000.0);
+                    combinedScore += taskScore;
+                    logDebug("Score for task '" + taskName + "': " + formatToTwoDecimalPlaces(taskScore));
+                }
             }
 
             cJSON *valuesArray = cJSON_CreateArray();
@@ -230,7 +256,7 @@ void MetricsCollector::createBenchmarkReport(const std::string &taskName) {
     cJSON_AddItemToObject(runtimeReport, taskName.c_str(), runtimeMetricsJson);
 }
 
-cJSON *MetricsCollector::createJSONReport(const std::string &filePath) const {
+cJSON *MetricsCollector::createJSONReport(const std::string &filePath, int tasks) const {
     logDebug("Creating the JSON report");
     cJSON *reportJson = cJSON_CreateObject();
 
@@ -251,6 +277,8 @@ cJSON *MetricsCollector::createJSONReport(const std::string &filePath) const {
     } else {
         logWarn("No benchmark results to include in the report.");
     }
+
+    cJSON_AddStringToObject(reportJson, "Score", std::to_string(static_cast<int>(std::round(combinedScore / tasks))).c_str());
 
     char *jsonString = cJSON_Print(reportJson);
     if (!jsonString) {
@@ -274,10 +302,10 @@ cJSON *MetricsCollector::createJSONReport(const std::string &filePath) const {
     return reportJson;
 }
 
-void MetricsCollector::createReport() {
+void MetricsCollector::createReport(int tasks) {
     logDebug("Creating the reports");
     std::string output_dir = ConfigurationManager::getInstance().getValue("output_dir");
-    cJSON *reportJson = createJSONReport(output_dir + "/valyria_report.json");
+    cJSON *reportJson = createJSONReport(output_dir + "/valyria_report.json", tasks);
     if (reportJson) {
         HTMLReportGenerator html(reportJson, output_dir + "/valyria_report.html");
         html.generateReport();

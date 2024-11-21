@@ -34,6 +34,10 @@ The following options are available:
   - Default: `1000` ms
   - Example: `--sampling_rate=500`
 
+- **`asset_dir`**: Directory where assets (textures, shaders, etc.) are located.
+  - Default: `ASSET_BASE_DIR` (configured during build time to `/usr/share/valyria/assets`)
+  - Example: `--asset_dir=/opt/valyria/assets`
+
 - **`target_frame_rate`**: Sets a target frame rate for rendering.
   - Default: `60`
   - Example: `--target_frame_rate=30`
@@ -51,10 +55,16 @@ The following options are available:
   - Example: `--output_dir=/opt/persistent/valyria_results`
 
 ## Example Usage
-Run a benchmark for 60 seconds, with metrics sampling every 500 ms, a target frame rate of 60, and save results to `/opt/persistent/valyria_results`:
+Run a benchmark for 60 seconds, with metrics sampled every 500 ms, a target frame rate of 60, and assets loaded from `/opt/valyria/assets`. Save the results to `/opt/persistent/valyria_results`:
 
 ```
-valyria --benchmark_duration=60 --sampling_rate=500 --target_frame_rate=60 --window_width=1280 --window_height=720 --output_dir=/opt/persistent/valyria_results
+valyria --benchmark_duration=60 \
+        --sampling_rate=500 \
+        --target_frame_rate=60 \
+        --window_width=1280 \
+        --window_height=720 \
+        --asset_dir=/opt/valyria/assets \
+        --output_dir=/opt/persistent/valyria_results
 ```
 
 ## Example Output
@@ -66,6 +76,6 @@ Valyria outputs FPS to the console and generates a report upon completion. Examp
 [INF] FPS: 60.000000  -  Frame time: 16.666667 ms
 ...
 [INF] Benchmark run completed.
-[INF] JSON report: /opt/persistent/valyria_results/valyria_report.json
-[INF] HTML report: /opt/persistent/valyria_results/valyria_report.html
+[INF] JSON report: /tmp/valyria_report.json
+[INF] HTML report: /tmp/valyria_report.html
 ```
