@@ -1,4 +1,5 @@
 #include "Shader.h"
+#include "ConfigurationManager.h"
 #include "Logger.h"
 
 #include <fstream>
@@ -10,7 +11,8 @@ Shader::Shader(GLenum type, const std::string &fileName) : type(type), shaderID(
 Shader::~Shader() { release(); }
 
 bool Shader::compile() {
-    logTrace("Compiling " + std::string((type == GL_VERTEX_SHADER ? "Vertex" : "Fragment")) + " shader using file: " + filename);
+    logTrace("Compiling " + std::string((type == GL_VERTEX_SHADER ? "Vertex" : "Fragment")) +
+             " shader using file: " + filename);
     shaderID = glCreateShader(type);
     if (shaderID == 0) {
         logError("Failed to create shader.");
@@ -63,7 +65,7 @@ void Shader::logShaderError() const {
 }
 
 std::string Shader::loadShaderFromFile(const std::string &fileName) {
-    std::string fullPath = std::string(ASSET_BASE_DIR) + "/" + fileName;
+    std::string fullPath = ConfigurationManager::getInstance().getValue("asset_dir") + "/" + fileName;
     std::ifstream file(fullPath);
 
     if (!file.is_open()) {

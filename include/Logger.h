@@ -20,7 +20,6 @@ enum class LogLevel {
  */
 namespace LoggerConfig {
     extern LogLevel currentLevel;
-    extern bool fileLoggingEnabled;
 
     void setLogLevel(LogLevel level);
 } // namespace LoggerConfig

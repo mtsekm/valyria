@@ -8,7 +8,6 @@
 
 namespace LoggerConfig {
 LogLevel currentLevel = LogLevel::INFO;
-bool fileLoggingEnabled = false;
 
 void setLogLevel(LogLevel level) { currentLevel = level; }
 

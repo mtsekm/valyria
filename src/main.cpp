@@ -8,6 +8,7 @@ int main(int argc, char *argv[]) {
         logInfo("Valyria version: " + std::string(PROJECT_VERSION));
 
         ConfigurationManager &configManager = ConfigurationManager::getInstance();
+        configManager.setOption("asset_dir", std::string(ASSET_BASE_DIR), "Asset directory");
         configManager.setOption("benchmark_duration", "30", "The duration for running each render task in seconds.");
         configManager.setOption("log_level", "INFO", "Log level");
         configManager.setOption("direct_mode", "false", "Whether to use Essos direct mode or run as a wayland client.");
